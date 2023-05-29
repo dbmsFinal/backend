@@ -33,9 +33,6 @@ def getPollResult(poll_id):
             return jsonify({'message': 'Poll-{:d} has not ended yet.'.format(poll_id)}), 400
     
     questions = Question.query.filter_by(poll_id=poll_id).all()
-    print(questions[0])
-    with open('tmp.txt', 'w') as f:
-        f.write('{:d}'.format(len(questions)))
     results = []
     for question in questions:
         question_result = {
@@ -61,8 +58,8 @@ def getPollResult(poll_id):
     return jsonify({'poll_id': poll_id, 'results': results}), 200
 
 if __name__ == '__main__':
-    # with app.app_context():
-    #     db.create_all()
+    with app.app_context():
+        db.create_all()
         # user = User(username='chang', email='a85948533@gmail.com', password='tt')
         # db.session.add(user)
         # poll = Poll(title='ended', description='Poll has ended.', creator_id=1, start_date=datetime.strptime('2020-3-3', '%Y-%m-%d'), end_date=datetime.strptime('2021-4-23', '%Y-%m-%d'))
