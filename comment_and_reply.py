@@ -1,52 +1,43 @@
-from ORM import app, db, User, Poll, Question, Options, Comment, Vote
-from flask import request, jsonify
-from flask_login import current_user
-import re
-from sqlalchemy.exc import SQLAlchemyError
+from ORM import app, db, Comment
+from flask_login import login_required
+from flask import jsonify, request
 
-'''
-評論和討論：
-用戶可以對公投發表評論，與其他用戶進行互動和討論。
-用戶可以查看公投已發表的評論
-'''
-@app.route('/poll/<poll_id>/comments', methods=['GET', 'POST'])
-def poll_comments(poll_id):
-    poll = Poll.query.get(poll_id)
-
-    if request.method == 'POST':
-        content = request.form.get('comment')  # Assuming the comment is provided through a form field with the name 'comment'
-        parent_id = request.form.get('parent_id')  # Assuming the parent comment ID is provided through a form field with the name 'parent_id'
-
-        if parent_id:
-            # Reply to an existing comment
-            parent_comment = Comment.query.get(parent_id)
-            if parent_comment:
-                comment = Comment(poll_id=poll_id, content=content, parent=parent_comment)
-                db.session.add(comment)
-        else:
-            # Comment to the poll
-            comment = Comment(poll_id=poll_id, content=content)
-            db.session.add(comment)
-
-        db.session.commit()
-        return "Comment submitted successfully"
-
+@app.route('/polls/<int:poll_id>/comments', methods=['GET'])
+def view_comments(poll_id):
     comments = Comment.query.filter_by(poll_id=poll_id).all()
+    comments_data = [{'comment_id': comment.comment_id, 'content': comment.content} for comment in comments]
     
-    return jsonify({
-        'poll': {
-            'poll_id': poll.poll_id,
-            # Include other relevant attributes of the poll
-        },
-        'comments': [
-            {
-                'comment_id': comment.comment_id,
-                'user_id': comment.user_id,
-                'content': comment.content,
-                # Include other relevant attributes of the comment
-            }
-            for comment in comments
-        ]
-    })
+    return jsonify({'data': comments_data}), 200
+
+# Function to allow users to comment
+@app.route('/polls/<int:poll_id>/comments/new', methods=['POST'])
+#@login_required
+def add_comment(poll_id):
+    user_id = request.json.get('user_id')
+    content = request.json.get('content')
+
+    comment = Comment(user_id=user_id, content=content, poll_id=poll_id)
+    db.session.add(comment)
+    db.session.commit()
+
+    return jsonify({'message': 'Comment added successfully'}), 201
+
+# Function to allow users to reply to a comment
+@app.route('/polls/<int:poll_id>/comments/<int:comment_id>/replies', methods=['POST'])
+#@login_required
+def add_reply(poll_id, comment_id):
+    user_id = request.json.get('user_id')
+    content = request.json.get('content')
+
+    parent_comment = Comment.query.get_or_404(comment_id)
+    if parent_comment.poll_id != poll_id:
+        return jsonify({'error': 'Comment not found for the given poll.'}), 404
+
+    reply = Comment(user_id=user_id, content=content, poll_id=poll_id, parent_id=comment_id)
+    db.session.add(reply)
+    db.session.commit()
+
+    return jsonify({'message': 'Reply added successfully'}), 201
+
 if __name__ == '__main__':
     app.run(debug = True)
