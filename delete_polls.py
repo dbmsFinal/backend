@@ -2,7 +2,7 @@ from ORM import app, Poll, db
 from flask_login import login_required, current_user
 from flask import jsonify
 
-@app.route('/delete_poll/<int:poll_id>', methods=['DELETE'])
+@app.route('/delete_poll/<path:poll_id>', methods=['DELETE'])
 @login_required
 def delete_poll(poll_id):
     poll = Poll.query.get(poll_id)
