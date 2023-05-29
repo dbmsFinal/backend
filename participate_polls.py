@@ -46,11 +46,7 @@ def view_all_polls():
 
     return jsonify({"message" : response}), 200
 
-
-'''
-Display the Poll with poll_id.
-'''
-@app.route('/polls/<int:poll_id>', methods=['GET'])
+@app.route('/polls/<path:poll_id>', methods=['GET'])
 def get_poll(poll_id):
     try:
         poll = Poll.query.get_or_404(poll_id)
