@@ -1,47 +1,68 @@
 from ORM import app, db, User, Poll, Question, Options, Comment, Vote
 from flask import jsonify
 
-'''
-List all polls, categorizing them as ongoing or completed
-'''
-@app.route('/polls/')
-def view_polls():
+@app.route('/polls/ongoing')
+def view_ongoing_polls():
+    ongoing_polls = Poll.query.filter(Poll.start_date <= db.func.current_date(), Poll.end_date >= db.func.current_date()).all()
+
+    if len(ongoing_polls) == 0:
+        return jsonify({"error" : "No ongoing polls available."}), 404
+
+    response = {
+        'ongoing_polls': [poll_to_dict(poll) for poll in ongoing_polls]
+    }
+
+    return jsonify({"message" : response}), 200
+
+
+@app.route('/polls/completed')
+def view_completed_polls():
+    completed_polls = Poll.query.filter(Poll.end_date < db.func.current_date()).all()
+
+    if len(completed_polls) == 0:
+        return jsonify({"error" : "No completed polls available."}), 404
+
+    response = {
+        'completed_polls': [poll_to_dict(poll) for poll in completed_polls]
+    }
+
+    return jsonify({"message" : response}), 200
+
+@app.route('/polls')
+def view_all_polls():
     ongoing_polls = Poll.query.filter(Poll.start_date <= db.func.current_date(), Poll.end_date >= db.func.current_date()).all()
     completed_polls = Poll.query.filter(Poll.end_date < db.func.current_date()).all()
 
-    if len(ongoing_polls) == 0 and len(completed_polls) == 0:
-        # No ongoing or completed polls available
-        return jsonify(message="No polls available.")
-
     response = {}
 
-    if len(ongoing_polls) == 0 and len(completed_polls) > 0:
-        # No ongoing polls, but there are completed polls
-        response['completed_polls'] = [poll_to_dict(poll) for poll in completed_polls]
-
-    if len(ongoing_polls) > 0 and len(completed_polls) == 0:
-        # Ongoing polls, but no completed polls
+    if len(ongoing_polls) > 0:
         response['ongoing_polls'] = [poll_to_dict(poll) for poll in ongoing_polls]
 
-    if len(ongoing_polls) > 0 and len(completed_polls) > 0:
-        # Both ongoing and completed polls available
-        response['ongoing_polls'] = [poll_to_dict(poll) for poll in ongoing_polls]
+    if len(completed_polls) > 0:
         response['completed_polls'] = [poll_to_dict(poll) for poll in completed_polls]
 
-    return jsonify(response)
+    if len(response) == 0:
+        return jsonify({"error" : "No polls available."}), 404
+
+    return jsonify({"message" : response}), 200
+
 
 '''
 Display the Poll with poll_id.
 '''
 @app.route('/polls/<int:poll_id>', methods=['GET'])
 def get_poll(poll_id):
-    poll = Poll.query.get(poll_id)
+    try:
+        poll = Poll.query.get_or_404(poll_id)
+    except:
+        return jsonify({"error" : "Poll not found."}), 404  # ??
     if poll is None:
-        return jsonify(message="Poll not found.")
+        return jsonify({"error" : "Poll not found."}), 404
 
     creator = User.query.get(poll.creator_id)
     if creator is None:
-        return jsonify(message="Poll creator not found.")
+        return jsonify({"error": "Poll creator not found."}), 400
+    
 
     questions = Question.query.filter_by(poll_id=poll_id).all()
     poll_data = poll_to_dict(poll)
@@ -64,7 +85,7 @@ def get_poll(poll_id):
     comments = Comment.query.filter_by(poll_id=poll_id).all()
     poll_data['comments'] = [{'comment_id': comment.comment_id, 'content': comment.content} for comment in comments]
 
-    return jsonify(poll_data)
+    return jsonify({"message" : poll_data}), 200
 
 def poll_to_dict(poll):
     return {
