@@ -3,7 +3,7 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from datetime import datetime
-from ORM import Poll, Options, Vote
+from ORM import Poll, Options, Vote, Question
 
 app = Flask(__name__)
 # 設定資料庫連線地址
