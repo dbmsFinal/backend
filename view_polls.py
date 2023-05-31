@@ -1,4 +1,4 @@
-from ORM import app, db, User, Poll, Question, Options, Comment, Vote
+from ORM import app, db, User, Poll, Question, Options, Comment
 from flask import jsonify
 
 @app.route('/polls/ongoing')
@@ -13,7 +13,6 @@ def view_ongoing_polls():
     }
 
     return jsonify({"message" : response}), 200
-
 
 @app.route('/polls/completed')
 def view_completed_polls():
@@ -51,7 +50,7 @@ def get_poll(poll_id):
     try:
         poll = Poll.query.get_or_404(poll_id)
     except:
-        return jsonify({"error" : "Poll not found."}), 404  # ??
+        return jsonify({"error" : "Poll not found."}), 404 
     if poll is None:
         return jsonify({"error" : "Poll not found."}), 404
 
