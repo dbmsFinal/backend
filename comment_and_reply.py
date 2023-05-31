@@ -11,7 +11,7 @@ def view_comments(poll_id):
 
 # Function to allow users to comment
 @app.route('/polls/<int:poll_id>/comments/new', methods=['POST'])
-#@login_required
+@login_required
 def add_comment(poll_id):
     user_id = request.json.get('user_id')
     content = request.json.get('content')
@@ -24,7 +24,7 @@ def add_comment(poll_id):
 
 # Function to allow users to reply to a comment
 @app.route('/polls/<int:poll_id>/comments/<int:comment_id>/replies', methods=['POST'])
-#@login_required
+@login_required
 def add_reply(poll_id, comment_id):
     user_id = request.json.get('user_id')
     content = request.json.get('content')
