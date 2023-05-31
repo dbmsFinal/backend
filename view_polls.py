@@ -1,12 +1,13 @@
 from ORM import app, db, User, Poll, Question, Options, Comment
 from flask import jsonify
 
+# View ongoning polls
 @app.route('/polls/ongoing')
 def view_ongoing_polls():
     ongoing_polls = Poll.query.filter(Poll.start_date <= db.func.current_date(), Poll.end_date >= db.func.current_date()).all()
 
     if len(ongoing_polls) == 0:
-        return jsonify({"error" : "No ongoing polls available."}), 404
+        return jsonify({"message": "No ongoing polls available."}), 204
 
     response = {
         'ongoing_polls': [poll_to_dict(poll) for poll in ongoing_polls]
@@ -14,12 +15,13 @@ def view_ongoing_polls():
 
     return jsonify({"message" : response}), 200
 
+# View completed polls
 @app.route('/polls/completed')
 def view_completed_polls():
     completed_polls = Poll.query.filter(Poll.end_date < db.func.current_date()).all()
 
     if len(completed_polls) == 0:
-        return jsonify({"error" : "No completed polls available."}), 404
+        return jsonify({"message": "No completed polls available."}), 204
 
     response = {
         'completed_polls': [poll_to_dict(poll) for poll in completed_polls]
@@ -27,6 +29,7 @@ def view_completed_polls():
 
     return jsonify({"message" : response}), 200
 
+# View all polls
 @app.route('/polls')
 def view_all_polls():
     ongoing_polls = Poll.query.filter(Poll.start_date <= db.func.current_date(), Poll.end_date >= db.func.current_date()).all()
@@ -45,19 +48,17 @@ def view_all_polls():
 
     return jsonify({"message" : response}), 200
 
+# View specific poll
 @app.route('/polls/<path:poll_id>', methods=['GET'])
 def get_poll(poll_id):
     try:
         poll = Poll.query.get_or_404(poll_id)
     except:
         return jsonify({"error" : "Poll not found."}), 404 
-    if poll is None:
-        return jsonify({"error" : "Poll not found."}), 404
 
     creator = User.query.get(poll.creator_id)
     if creator is None:
-        return jsonify({"error": "Poll creator not found."}), 400
-    
+        return jsonify({"error": "Poll creator not found."}), 404
 
     questions = Question.query.filter_by(poll_id=poll_id).all()
     poll_data = poll_to_dict(poll)

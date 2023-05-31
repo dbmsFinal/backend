@@ -1,24 +1,11 @@
 from ORM import app, db, Poll, Question, Vote, Options
 from flask import jsonify, request
-from flask_login import login_required #, current_user
+from flask_login import login_required, current_user
 import datetime
 
-'''
-{
-  "votes": [
-    {
-      "question_id": 1,
-      "option_id": 2
-    },
-    {
-      "question_id": 2,
-      "option_id": 1
-    }
-  ]
-}
-'''
-@app.route('/polls/<int:poll_id>/vote', methods=['POST'])
-#@login_required
+# Vote to every question of the poll
+@app.route('/polls/<path:poll_id>/vote', methods=['POST'])
+@login_required
 def vote(poll_id):
     try:
         poll = Poll.query.get_or_404(poll_id)
@@ -29,20 +16,23 @@ def vote(poll_id):
     # Check if the poll is currently active
     current_date = datetime.date.today()
     if current_date < poll.start_date or current_date > poll.end_date:
-        return jsonify({'message': 'Poll is not active'}), 400
+        return jsonify({'error': 'Poll is not active'}), 400
     
-    #current_date = db.func.current_date()
     if not Poll.is_approved:
-        return jsonify({'message': 'Poll is not approved'}), 400
-    
-    current_user = 1
+        return jsonify({'error': 'Poll is not approved'}), 400
     
     # Check if the user has already voted for this poll
-    existing_vote = Vote.query.filter_by(user_id=current_user, poll_id=poll.poll_id).first()
+    existing_vote = Vote.query.filter_by(user_id=current_user.user_id, poll_id=poll.poll_id).first()
     if existing_vote:
-        return jsonify({'message': 'User has already voted for this poll'}), 400
+        return jsonify({'error': 'User has already voted for this poll'}), 400
     
     votes = request.json.get('votes')
+    
+    # Check if the user has voted for every question of the poll
+    question_ids = {vote['question_id'] for vote in votes}
+    poll_question_ids = {question.question_id for question in Question.query.filter_by(poll_id=poll.poll_id).all()}
+    if question_ids != poll_question_ids:
+        return jsonify({'error': 'Please vote for every question of the poll'}), 400
     
     for vote in votes:
         question_id = vote['question_id']
@@ -55,7 +45,7 @@ def vote(poll_id):
     
               
         # Create a new vote object
-        new_vote = Vote(user_id=current_user, poll_id=poll.poll_id, question_id=question_id, option_id=option_id)
+        new_vote = Vote(user_id=current_user.user_id, poll_id=poll.poll_id, question_id=question_id, option_id=option_id)
         db.session.add(new_vote)
         
         # Increment the vote count for the selected option
